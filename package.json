@@ -7,8 +7,9 @@
     "install-all": "npm install && cd backend && npm install && cd ../frontend && npm install",
     "backend": "cd backend && npm run dev",
     "frontend": "cd frontend && npm start",
-    "websocket": "cd backend && npm run websocket",
+    "build": "cd frontend && npm run build",
     "dev": "concurrently \"npm run backend\" \"npm run websocket\" \"npm run frontend\"",
+    "websocket": "cd backend && npm run websocket",
     "test-ws": "cd backend && npm run test-ws",
     "test-ws-advanced": "cd backend && npm run test-ws-advanced",
     "testclient": "cd backend && npm run testclient"
@@ -19,7 +20,8 @@
   },
   "devDependencies": {
     "concurrently": "^9.2.1",
-    "vercel": "^46.1.0"
+    "vercel": "^46.1.0",
+    "vite": "^7.1.3"
   },
   "keywords": [
     "todo",
