@@ -1,0 +1,63 @@
+/* Additional App-specific styles */
+.App {
+  text-align: center;
+}
+
+/* Ensure proper spacing and layout */
+.container {
+  margin-top: 20px;
+  margin-bottom: 20px;
+}
+
+/* Smooth transitions for better UX */
+.todo-item {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.todo-item:hover {
+  transform: translateX(5px);
+}
+
+/* Button focus states for accessibility */
+.add-btn:focus,
+.complete-btn:focus,
+.delete-btn:focus {
+  outline: 2px solid #667eea;
+  outline-offset: 2px;
+}
+
+/* Input focus state */
+.todo-input:focus {
+  transform: scale(1.02);
+}
+
+/* Loading animation */
+.loading {
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* Error message animation */
+.error {
+  animation: shake 0.5s ease-in-out;
+}
+
+@keyframes shake {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-5px);
+  }
+  75% {
+    transform: translateX(5px);
+  }
+}

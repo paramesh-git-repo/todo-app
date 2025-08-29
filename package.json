@@ -1,0 +1,21 @@
+{
+  "name": "todo-app",
+  "version": "1.0.0",
+  "description": "Todo app with separate frontend and backend",
+  "scripts": {
+    "install-all": "npm install && cd backend && npm install && cd ../frontend && npm install",
+    "backend": "cd backend && npm run dev",
+    "frontend": "cd frontend && npm start",
+    "websocket": "cd backend && npm run websocket",
+    "dev": "concurrently \"npm run backend\" \"npm run websocket\" \"npm run frontend\"",
+    "test-ws": "cd backend && npm run test-ws",
+    "test-ws-advanced": "cd backend && npm run test-ws-advanced",
+    "testclient": "cd backend && npm run testclient"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  },
+  "keywords": ["todo", "react", "express", "mongodb", "websocket"],
+  "author": "",
+  "license": "MIT"
+}
