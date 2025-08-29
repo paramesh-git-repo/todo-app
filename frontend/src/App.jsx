@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import WebSocketTest from './WebSocketTest';
+import WebSocketTest from './WebSocketTest.jsx';
 import './App.css';
 
 function App() {
