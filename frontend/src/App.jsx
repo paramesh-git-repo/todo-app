@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from './api.js';
 import WebSocketTest from './WebSocketTest.jsx';
 import './App.css';
 
@@ -13,7 +13,7 @@ function App() {
   const fetchTodos = async () => {
     try {
       setLoading(true);
-      const response = await axios.get('/api/todos');
+      const response = await api.get('/api/todos');
       setTodos(response.data);
       setError(null);
     } catch (err) {
@@ -30,7 +30,7 @@ function App() {
     if (!newTodo.trim()) return;
 
     try {
-      const response = await axios.post('/api/todos', { text: newTodo });
+      const response = await api.post('/api/todos', { text: newTodo });
       setTodos([response.data, ...todos]);
       setNewTodo('');
       setError(null);
@@ -43,7 +43,7 @@ function App() {
   // Toggle todo completion
   const toggleTodo = async (id, completed) => {
     try {
-      const response = await axios.put(`/api/todos/${id}`, { completed: !completed });
+      const response = await api.put(`/api/todos/${id}`, { completed: !completed });
       setTodos(todos.map(todo => 
         todo._id === id ? response.data : todo
       ));
@@ -57,7 +57,7 @@ function App() {
   // Delete todo
   const deleteTodo = async (id) => {
     try {
-      await axios.delete(`/api/todos/${id}`);
+      await api.delete(`/api/todos/${id}`);
       setTodos(todos.filter(todo => todo._id !== id));
       setError(null);
     } catch (err) {
