@@ -13,10 +13,8 @@ services:
       - key: PORT
         value: 10000
 
-  - type: web
+  - type: static
     name: todo-app-frontend
-    env: static
-    plan: free
     buildCommand: npm install && npm run build
     staticPublishPath: ./dist
     envVars:
