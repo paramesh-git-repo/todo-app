@@ -4,9 +4,9 @@
   "description": "Todo app with separate frontend and backend",
   "type": "module",
   "scripts": {
-    "dev": "npx vite",
-    "build": "cd frontend && npx vite build",
-    "preview": "npx vite preview",
+    "dev": "cd frontend && npm run start",
+    "build": "cd frontend && npm run build",
+    "preview": "cd frontend && npm run preview",
     "install-all": "npm install && cd backend && npm install && cd ../frontend && npm install",
     "backend": "cd backend && npm run dev",
     "frontend": "cd frontend && npm start",
