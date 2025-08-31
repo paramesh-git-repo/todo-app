@@ -43,6 +43,19 @@ const todoSchema = new mongoose.Schema({
 const Todo = mongoose.model('Todo', todoSchema);
 
 // Routes
+app.get('/', (req, res) => {
+  res.json({ 
+    message: 'Todo App Backend API is running!',
+    endpoints: {
+      'GET /api/todos': 'Get all todos',
+      'POST /api/todos': 'Create a new todo',
+      'PUT /api/todos/:id': 'Update a todo',
+      'DELETE /api/todos/:id': 'Delete a todo'
+    },
+    status: 'active'
+  });
+});
+
 app.get('/api/todos', async (req, res) => {
   try {
     const todos = await Todo.find().sort({ createdAt: -1 });

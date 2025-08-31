@@ -19,4 +19,4 @@ services:
     staticPublishPath: ./dist
     envVars:
       - key: VITE_API_URL
-        value: https://todo-app-backend.onrender.com
+        value: https://todo-app-backend-4bpu.onrender.com
