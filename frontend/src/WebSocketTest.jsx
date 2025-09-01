@@ -8,7 +8,8 @@ function WebSocketTest() {
 
   useEffect(() => {
     // Connect to WebSocket server
-    const ws = new WebSocket('ws://localhost:5002');
+    const SOCKET_URL = import.meta.env.VITE_SOCKET_URL;
+    const ws = new WebSocket(SOCKET_URL);
     wsRef.current = ws;
 
     ws.onopen = () => {
