@@ -51,6 +51,52 @@ const todoSchema = new mongoose.Schema({
 
 const Todo = mongoose.model('Todo', todoSchema);
 
+// Asset Schema
+const assetSchema = new mongoose.Schema({
+  name: {
+    type: String,
+    required: true,
+    trim: true
+  },
+  description: {
+    type: String,
+    default: ''
+  },
+  category: {
+    type: String,
+    default: ''
+  },
+  location: {
+    type: String,
+    default: ''
+  },
+  status: {
+    type: String,
+    enum: ['active', 'inactive', 'maintenance', 'retired'],
+    default: 'active'
+  },
+  purchaseDate: {
+    type: Date
+  },
+  cost: {
+    type: Number
+  },
+  tags: {
+    type: [String],
+    default: []
+  },
+  fileUrl: {
+    type: String,
+    default: ''
+  },
+  fileKey: {
+    type: String,
+    default: ''
+  }
+}, { timestamps: true });
+
+const Asset = mongoose.model('Asset', assetSchema);
+
 // Routes
 app.get('/', (req, res) => {
   res.json({ 
@@ -60,6 +106,11 @@ app.get('/', (req, res) => {
       'POST /api/todos': 'Create a new todo',
       'PUT /api/todos/:id': 'Update a todo',
       'DELETE /api/todos/:id': 'Delete a todo',
+      'GET /api/assets': 'Get all assets',
+      'GET /api/assets/:id': 'Get a single asset',
+      'POST /api/assets': 'Create a new asset',
+      'PUT /api/assets/:id': 'Update an asset',
+      'DELETE /api/assets/:id': 'Delete an asset',
       'POST /api/upload': 'Upload a file to S3',
       'GET /api/files': 'List all files in S3 bucket'
     },
@@ -122,6 +173,95 @@ app.delete('/api/todos/:id', async (req, res) => {
     }
     
     res.json({ message: 'Todo deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Asset CRUD Routes
+app.get('/api/assets', async (req, res) => {
+  try {
+    const assets = await Asset.find().sort({ createdAt: -1 });
+    res.json(assets);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+app.get('/api/assets/:id', async (req, res) => {
+  try {
+    const asset = await Asset.findById(req.params.id);
+    if (!asset) {
+      return res.status(404).json({ message: 'Asset not found' });
+    }
+    res.json(asset);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+app.post('/api/assets', async (req, res) => {
+  try {
+    const { name, description, category, location, status, purchaseDate, cost, tags } = req.body;
+    if (!name || name.trim() === '') {
+      return res.status(400).json({ message: 'Asset name is required' });
+    }
+
+    const asset = new Asset({
+      name: name.trim(),
+      description: description || '',
+      category: category || '',
+      location: location || '',
+      status: status || 'active',
+      purchaseDate: purchaseDate ? new Date(purchaseDate) : undefined,
+      cost,
+      tags: Array.isArray(tags) ? tags : []
+    });
+
+    const saved = await asset.save();
+    res.status(201).json(saved);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+app.put('/api/assets/:id', async (req, res) => {
+  try {
+    const allowedFields = ['name', 'description', 'category', 'location', 'status', 'purchaseDate', 'cost', 'tags', 'fileUrl', 'fileKey'];
+    const updates = {};
+    for (const key of allowedFields) {
+      if (req.body[key] !== undefined) {
+        updates[key] = key === 'name' && typeof req.body[key] === 'string' ? req.body[key].trim() : req.body[key];
+      }
+    }
+
+    if (updates.purchaseDate) {
+      updates.purchaseDate = new Date(updates.purchaseDate);
+    }
+
+    const updated = await Asset.findByIdAndUpdate(
+      req.params.id,
+      updates,
+      { new: true }
+    );
+
+    if (!updated) {
+      return res.status(404).json({ message: 'Asset not found' });
+    }
+
+    res.json(updated);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+app.delete('/api/assets/:id', async (req, res) => {
+  try {
+    const removed = await Asset.findByIdAndDelete(req.params.id);
+    if (!removed) {
+      return res.status(404).json({ message: 'Asset not found' });
+    }
+    res.json({ message: 'Asset deleted successfully' });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
