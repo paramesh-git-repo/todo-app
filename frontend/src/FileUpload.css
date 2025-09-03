@@ -1,91 +1,139 @@
+/* File Upload Component Styles for Asset Management */
 .file-upload-container {
-  max-width: 800px;
-  margin: 0 auto;
-  padding: 20px;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 25px;
+  margin-top: 30px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
 }
 
 .file-upload-container h2 {
+  color: #2d3748;
+  margin-bottom: 25px;
+  font-size: 1.5rem;
   text-align: center;
-  color: #333;
-  margin-bottom: 30px;
-  font-size: 2rem;
 }
 
+/* Upload Section */
 .upload-section {
-  background: #f8f9fa;
-  border-radius: 12px;
-  padding: 25px;
-  margin-bottom: 30px;
-  border: 1px solid #e9ecef;
+  margin-bottom: 25px;
 }
 
 .file-input-wrapper {
-  display: flex;
-  gap: 15px;
-  align-items: center;
   margin-bottom: 20px;
 }
 
 .file-input {
-  flex: 1;
-  padding: 12px;
-  border: 2px dashed #007bff;
+  width: 100%;
+  padding: 15px;
+  border: 2px dashed #667eea;
   border-radius: 8px;
-  background: white;
+  background: #f7fafc;
   cursor: pointer;
   transition: all 0.3s ease;
+  font-size: 16px;
 }
 
 .file-input:hover {
-  border-color: #0056b3;
-  background: #f8f9ff;
+  border-color: #764ba2;
+  background: #edf2f7;
 }
 
+.file-input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Asset Info Form */
+.asset-info-form {
+  background: #f7fafc;
+  padding: 20px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  border: 1px solid #e2e8f0;
+}
+
+.asset-info-form h3 {
+  color: #2d3748;
+  margin-bottom: 15px;
+  font-size: 1.2rem;
+}
+
+.form-row {
+  display: flex;
+  gap: 15px;
+  margin-bottom: 15px;
+  flex-wrap: wrap;
+}
+
+.asset-input {
+  flex: 1;
+  min-width: 200px;
+  padding: 12px 16px;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 16px;
+  transition: all 0.2s;
+  background: white;
+}
+
+.asset-input:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+/* Upload Button */
 .upload-button {
-  padding: 12px 24px;
-  background: #007bff;
+  width: 100%;
+  padding: 15px 24px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
   border: none;
   border-radius: 8px;
-  cursor: pointer;
+  font-size: 16px;
   font-weight: 600;
+  cursor: pointer;
   transition: all 0.3s ease;
-  min-width: 120px;
 }
 
 .upload-button:hover:not(:disabled) {
-  background: #0056b3;
-  transform: translateY(-1px);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(102, 126, 234, 0.3);
 }
 
 .upload-button:disabled {
-  background: #6c757d;
+  opacity: 0.6;
   cursor: not-allowed;
   transform: none;
+  box-shadow: none;
 }
 
+/* Messages */
 .error-message {
-  background: #f8d7da;
-  color: #721c24;
-  padding: 15px;
+  background: #fed7d7;
+  color: #c53030;
+  padding: 12px 16px;
   border-radius: 8px;
-  border: 1px solid #f5c6cb;
-  margin-top: 15px;
+  margin-bottom: 15px;
+  border: 1px solid #feb2b2;
+  text-align: center;
 }
 
 .success-message {
-  background: #d4edda;
-  color: #155724;
+  background: #c6f6d5;
+  color: #276749;
   padding: 20px;
   border-radius: 8px;
-  border: 1px solid #c3e6cb;
-  margin-top: 15px;
+  margin-bottom: 15px;
+  border: 1px solid #9ae6b4;
 }
 
 .success-message h3 {
-  margin: 0 0 15px 0;
-  color: #155724;
+  margin-top: 0;
+  margin-bottom: 15px;
+  color: #22543d;
 }
 
 .success-message p {
@@ -93,8 +141,9 @@
 }
 
 .success-message a {
-  color: #007bff;
+  color: #667eea;
   text-decoration: none;
+  font-weight: 500;
   word-break: break-all;
 }
 
@@ -102,12 +151,10 @@
   text-decoration: underline;
 }
 
+/* Files Section */
 .files-section {
-  background: white;
-  border-radius: 12px;
-  padding: 25px;
-  border: 1px solid #e9ecef;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  border-top: 1px solid #e2e8f0;
+  padding-top: 25px;
 }
 
 .files-header {
@@ -118,98 +165,120 @@
 }
 
 .files-header h3 {
+  color: #2d3748;
   margin: 0;
-  color: #333;
+  font-size: 1.3rem;
 }
 
 .refresh-button {
   padding: 8px 16px;
-  background: #28a745;
+  background: #48bb78;
   color: white;
   border: none;
   border-radius: 6px;
-  cursor: pointer;
   font-size: 14px;
-  transition: all 0.3s ease;
+  cursor: pointer;
+  transition: all 0.2s ease;
 }
 
 .refresh-button:hover:not(:disabled) {
-  background: #218838;
+  background: #38a169;
+  transform: translateY(-1px);
 }
 
 .refresh-button:disabled {
-  background: #6c757d;
+  opacity: 0.6;
   cursor: not-allowed;
 }
 
-.loading {
-  text-align: center;
-  color: #6c757d;
-  padding: 20px;
-  font-style: italic;
-}
-
-.no-files {
-  text-align: center;
-  color: #6c757d;
-  padding: 20px;
-  font-style: italic;
-}
-
+/* Files List */
 .files-list {
   max-height: 400px;
   overflow-y: auto;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: white;
 }
 
 .file-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 15px;
-  border-bottom: 1px solid #e9ecef;
-  transition: background-color 0.2s ease;
-}
-
-.file-item:hover {
-  background-color: #f8f9fa;
+  padding: 15px 20px;
+  border-bottom: 1px solid #e2e8f0;
+  transition: background-color 0.2s;
 }
 
 .file-item:last-child {
   border-bottom: none;
 }
 
+.file-item:hover {
+  background: #f7fafc;
+}
+
 .file-info {
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  flex: 1;
 }
 
 .file-name {
-  font-weight: 600;
-  color: #333;
-  word-break: break-all;
+  font-weight: 500;
+  color: #2d3748;
+  margin-bottom: 4px;
+  word-break: break-word;
 }
 
 .file-size {
-  font-size: 14px;
-  color: #6c757d;
+  font-size: 0.9rem;
+  color: #718096;
 }
 
 .file-date {
-  font-size: 14px;
-  color: #6c757d;
+  font-size: 0.85rem;
+  color: #a0aec0;
   text-align: right;
-  min-width: 120px;
+  min-width: 150px;
 }
 
+.no-files {
+  text-align: center;
+  padding: 40px;
+  color: #718096;
+  font-style: italic;
+}
+
+.loading {
+  text-align: center;
+  padding: 40px;
+  color: #718096;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+/* Animations */
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* Responsive Design */
 @media (max-width: 768px) {
-  .file-input-wrapper {
-    flex-direction: column;
-    align-items: stretch;
+  .file-upload-container {
+    padding: 20px;
+    margin: 20px 10px;
   }
   
-  .upload-button {
-    width: 100%;
+  .form-row {
+    flex-direction: column;
+  }
+  
+  .asset-input {
+    min-width: unset;
   }
   
   .files-header {
@@ -221,11 +290,32 @@
   .file-item {
     flex-direction: column;
     align-items: flex-start;
-    gap: 10px;
+    gap: 8px;
   }
   
   .file-date {
     text-align: left;
-    min-width: auto;
+    min-width: unset;
+  }
+  
+  .success-message a {
+    word-break: break-all;
+    font-size: 0.9rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .file-upload-container {
+    padding: 15px;
+  }
+  
+  .upload-button {
+    padding: 12px 20px;
+    font-size: 15px;
+  }
+  
+  .file-input {
+    padding: 12px;
+    font-size: 15px;
   }
 }

@@ -21,7 +21,7 @@ const s3 = new AWS.S3();
 const BUCKET_NAME = process.env.S3_BUCKET_NAME || "todo-app-paramesh"; // your S3 bucket
 
 // MongoDB Connection
-mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/todo-app-paramesh', {
+mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/asset-management-app', {
   useNewUrlParser: true,
   useUnifiedTopology: true,
 });
@@ -32,34 +32,73 @@ db.once('open', () => {
   console.log('Connected to MongoDB');
 });
 
-// Todo Schema
-const todoSchema = new mongoose.Schema({
-  text: {
+// Asset Schema
+const assetSchema = new mongoose.Schema({
+  name: {
     type: String,
     required: true,
     trim: true
   },
-  completed: {
-    type: Boolean,
-    default: false
+  description: {
+    type: String,
+    trim: true,
+    default: ''
+  },
+  category: {
+    type: String,
+    required: true,
+    trim: true
+  },
+  tags: [{
+    type: String,
+    trim: true
+  }],
+  fileInfo: {
+    filename: String,
+    originalName: String,
+    size: Number,
+    mimetype: String,
+    s3Key: String,
+    s3Url: String
+  },
+  metadata: {
+    type: Map,
+    of: String,
+    default: new Map()
+  },
+  status: {
+    type: String,
+    enum: ['active', 'archived', 'deleted'],
+    default: 'active'
   },
   createdAt: {
+    type: Date,
+    default: Date.now
+  },
+  updatedAt: {
     type: Date,
     default: Date.now
   }
 });
 
-const Todo = mongoose.model('Todo', todoSchema);
+// Update the updatedAt field before saving
+assetSchema.pre('save', function(next) {
+  this.updatedAt = new Date();
+  next();
+});
+
+const Asset = mongoose.model('Asset', assetSchema);
 
 // Routes
 app.get('/', (req, res) => {
   res.json({ 
-    message: 'Todo App Backend API is running!',
+    message: 'Asset Management App Backend API is running!',
     endpoints: {
-      'GET /api/todos': 'Get all todos',
-      'POST /api/todos': 'Create a new todo',
-      'PUT /api/todos/:id': 'Update a todo',
-      'DELETE /api/todos/:id': 'Delete a todo',
+      'GET /api/assets': 'Get all assets with optional filtering',
+      'POST /api/assets': 'Create a new asset',
+      'PUT /api/assets/:id': 'Update an asset',
+      'DELETE /api/assets/:id': 'Delete an asset',
+      'GET /api/assets/categories': 'Get all unique categories',
       'POST /api/upload': 'Upload a file to S3',
       'GET /api/files': 'List all files in S3 bucket'
     },
@@ -67,61 +106,128 @@ app.get('/', (req, res) => {
   });
 });
 
-app.get('/api/todos', async (req, res) => {
+// Get all assets with optional filtering
+app.get('/api/assets', async (req, res) => {
   try {
-    const todos = await Todo.find().sort({ createdAt: -1 });
-    res.json(todos);
+    const { category, tags, search, status = 'active' } = req.query;
+    let query = { status };
+
+    if (category) {
+      query.category = new RegExp(category, 'i');
+    }
+
+    if (tags) {
+      const tagArray = tags.split(',').map(tag => tag.trim());
+      query.tags = { $in: tagArray };
+    }
+
+    if (search) {
+      query.$or = [
+        { name: new RegExp(search, 'i') },
+        { description: new RegExp(search, 'i') },
+        { tags: new RegExp(search, 'i') }
+      ];
+    }
+
+    const assets = await Asset.find(query).sort({ createdAt: -1 });
+    res.json(assets);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 });
 
-app.post('/api/todos', async (req, res) => {
+// Create new asset
+app.post('/api/assets', async (req, res) => {
   try {
-    const { text } = req.body;
-    if (!text || text.trim() === '') {
-      return res.status(400).json({ message: 'Task text is required' });
+    const { name, description, category, tags, fileInfo, metadata } = req.body;
+    
+    if (!name || name.trim() === '') {
+      return res.status(400).json({ message: 'Asset name is required' });
     }
     
-    const todo = new Todo({ text: text.trim() });
-    const savedTodo = await todo.save();
-    res.status(201).json(savedTodo);
+    if (!category || category.trim() === '') {
+      return res.status(400).json({ message: 'Category is required' });
+    }
+    
+    const asset = new Asset({
+      name: name.trim(),
+      description: description ? description.trim() : '',
+      category: category.trim(),
+      tags: tags || [],
+      fileInfo: fileInfo || {},
+      metadata: metadata || new Map()
+    });
+    
+    const savedAsset = await asset.save();
+    res.status(201).json(savedAsset);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 });
 
-app.put('/api/todos/:id', async (req, res) => {
+// Update asset
+app.put('/api/assets/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const { completed } = req.body;
+    const updateData = req.body;
     
-    const todo = await Todo.findByIdAndUpdate(
+    // Remove fields that shouldn't be updated directly
+    delete updateData._id;
+    delete updateData.createdAt;
+    
+    const asset = await Asset.findByIdAndUpdate(
       id,
-      { completed },
+      { ...updateData, updatedAt: new Date() },
       { new: true }
     );
     
-    if (!todo) {
-      return res.status(404).json({ message: 'Todo not found' });
+    if (!asset) {
+      return res.status(404).json({ message: 'Asset not found' });
     }
     
-    res.json(todo);
+    res.json(asset);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 });
 
-app.delete('/api/todos/:id', async (req, res) => {
+// Delete asset (soft delete by changing status)
+app.delete('/api/assets/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const todo = await Todo.findByIdAndDelete(id);
+    const { permanent } = req.query;
     
-    if (!todo) {
-      return res.status(404).json({ message: 'Todo not found' });
+    if (permanent === 'true') {
+      // Permanent delete
+      const asset = await Asset.findByIdAndDelete(id);
+      if (!asset) {
+        return res.status(404).json({ message: 'Asset not found' });
+      }
+      res.json({ message: 'Asset permanently deleted' });
+    } else {
+      // Soft delete
+      const asset = await Asset.findByIdAndUpdate(
+        id,
+        { status: 'deleted', updatedAt: new Date() },
+        { new: true }
+      );
+      
+      if (!asset) {
+        return res.status(404).json({ message: 'Asset not found' });
+      }
+      
+      res.json({ message: 'Asset moved to trash', asset });
     }
-    
-    res.json({ message: 'Todo deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Get all unique categories
+app.get('/api/assets/categories', async (req, res) => {
+  try {
+    const categories = await Asset.distinct('category', { status: 'active' });
+    res.json(categories);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -135,19 +241,50 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
       return res.status(400).json({ error: 'No file uploaded' });
     }
 
+    // Generate unique filename to avoid conflicts
+    const timestamp = Date.now();
+    const uniqueFilename = `${timestamp}-${file.originalname}`;
+
     const params = {
       Bucket: BUCKET_NAME,
-      Key: file.originalname,
+      Key: uniqueFilename,
       Body: file.buffer,
       ContentType: file.mimetype
     };
 
     const result = await s3.upload(params).promise();
+    
+    // Get additional form data for asset creation
+    const { name, description, category, tags } = req.body;
+    
+    // Create asset record if name and category are provided
+    let asset = null;
+    if (name && category) {
+      const assetData = {
+        name: name.trim(),
+        description: description ? description.trim() : '',
+        category: category.trim(),
+        tags: tags ? tags.split(',').map(tag => tag.trim()) : [],
+        fileInfo: {
+          filename: uniqueFilename,
+          originalName: file.originalname,
+          size: file.size,
+          mimetype: file.mimetype,
+          s3Key: result.Key,
+          s3Url: result.Location
+        }
+      };
+      
+      asset = new Asset(assetData);
+      await asset.save();
+    }
+    
     res.json({ 
       message: "File uploaded successfully", 
       url: result.Location,
       key: result.Key,
-      size: file.size
+      size: file.size,
+      asset: asset
     });
   } catch (err) {
     console.error("Upload error:", err);
