@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './FileUpload.css';
 
 const FileUpload = () => {
@@ -6,8 +6,12 @@ const FileUpload = () => {
   const [uploading, setUploading] = useState(false);
   const [uploadResult, setUploadResult] = useState(null);
   const [error, setError] = useState(null);
-  const [files, setFiles] = useState([]);
-  const [loadingFiles, setLoadingFiles] = useState(false);
+  const [assets, setAssets] = useState([]);
+  const [loadingAssets, setLoadingAssets] = useState(false);
+  const [query, setQuery] = useState('');
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [limit, setLimit] = useState(20);
 
   const handleFileSelect = (event) => {
     setSelectedFile(event.target.files[0]);
@@ -43,7 +47,7 @@ const FileUpload = () => {
       setUploadResult(result);
       setSelectedFile(null);
       // Refresh file list
-      fetchFiles();
+      fetchAssets();
     } catch (err) {
       setError(err.message);
     } finally {
@@ -51,23 +55,32 @@ const FileUpload = () => {
     }
   };
 
-  const fetchFiles = async () => {
-    setLoadingFiles(true);
+  const fetchAssets = async () => {
+    setLoadingAssets(true);
     try {
-      const response = await fetch('/api/files');
+      const params = new URLSearchParams();
+      if (query) params.append('q', query);
+      params.append('page', String(page));
+      params.append('limit', String(limit));
+      const response = await fetch(`/api/assets?${params.toString()}`);
       const result = await response.json();
       
       if (!response.ok) {
-        throw new Error(result.error || 'Failed to fetch files');
+        throw new Error(result.error || 'Failed to fetch assets');
       }
       
-      setFiles(result);
+      setAssets(result.items || []);
+      setTotal(result.total || 0);
     } catch (err) {
       setError(err.message);
     } finally {
-      setLoadingFiles(false);
+      setLoadingAssets(false);
     }
   };
+
+  useEffect(() => {
+    fetchAssets();
+  }, [page, limit]);
 
   const formatFileSize = (bytes) => {
     if (bytes === 0) return '0 Bytes';
@@ -83,7 +96,7 @@ const FileUpload = () => {
 
   return (
     <div className="file-upload-container">
-      <h2>File Upload</h2>
+      <h2>Asset Management</h2>
       
       <div className="upload-section">
         <div className="file-input-wrapper">
@@ -104,43 +117,108 @@ const FileUpload = () => {
 
         {error && <div className="error-message">{error}</div>}
         
-        {uploadResult && (
+        {uploadResult && uploadResult.asset && (
           <div className="success-message">
             <h3>Upload Successful!</h3>
-            <p><strong>File:</strong> {uploadResult.key}</p>
-            <p><strong>Size:</strong> {formatFileSize(uploadResult.size)}</p>
-            <p><strong>URL:</strong> <a href={uploadResult.url} target="_blank" rel="noopener noreferrer">{uploadResult.url}</a></p>
+            <p><strong>Name:</strong> {uploadResult.asset.name}</p>
+            <p><strong>Size:</strong> {formatFileSize(uploadResult.asset.size)}</p>
+            <p><strong>URL:</strong> <a href={uploadResult.asset.url} target="_blank" rel="noopener noreferrer">{uploadResult.asset.url}</a></p>
           </div>
         )}
       </div>
 
       <div className="files-section">
         <div className="files-header">
-          <h3>Files in Bucket</h3>
-          <button onClick={fetchFiles} disabled={loadingFiles} className="refresh-button">
-            {loadingFiles ? 'Loading...' : 'Refresh'}
+          <h3>Assets</h3>
+          <div className="search-controls">
+            <input
+              type="text"
+              placeholder="Search by name, key, or tag"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+            />
+            <button
+              onClick={() => { setPage(1); fetchAssets(); }}
+              disabled={loadingAssets}
+              className="refresh-button"
+            >
+              {loadingAssets ? 'Loading...' : 'Search'}
+            </button>
+          </div>
+          <button onClick={fetchAssets} disabled={loadingAssets} className="refresh-button">
+            {loadingAssets ? 'Loading...' : 'Refresh'}
           </button>
         </div>
 
-        {loadingFiles ? (
+        {loadingAssets ? (
           <div className="loading">Loading files...</div>
         ) : (
           <div className="files-list">
-            {files.length === 0 ? (
+            {assets.length === 0 ? (
               <p className="no-files">No files found</p>
             ) : (
-              files.map((file, index) => (
-                <div key={index} className="file-item">
+              assets.map((asset, index) => (
+                <div key={asset._id || index} className="file-item">
                   <div className="file-info">
-                    <span className="file-name">{file.key}</span>
-                    <span className="file-size">{formatFileSize(file.size)}</span>
+                    <span className="file-name">{asset.name}</span>
+                    <span className="file-size">{formatFileSize(asset.size)}</span>
                   </div>
-                  <span className="file-date">{formatDate(file.lastModified)}</span>
+                  <span className="file-date">{formatDate(asset.uploadedAt)}</span>
+                  <div className="file-actions">
+                    <button
+                      className="download-button"
+                      onClick={async () => {
+                        try {
+                          const resp = await fetch(`/api/assets/${asset._id}/download`);
+                          const data = await resp.json();
+                          if (!resp.ok) throw new Error(data.error || 'Failed to get download URL');
+                          window.open(data.url, '_blank');
+                        } catch (e) {
+                          setError(e.message);
+                        }
+                      }}
+                    >
+                      Download
+                    </button>
+                    <button
+                      className="delete-button"
+                      onClick={async () => {
+                        try {
+                          const resp = await fetch(`/api/assets/${asset._id}`, { method: 'DELETE' });
+                          const data = await resp.json();
+                          if (!resp.ok) throw new Error(data.error || 'Failed to delete asset');
+                          fetchAssets();
+                        } catch (e) {
+                          setError(e.message);
+                        }
+                      }}
+                    >
+                      Delete
+                    </button>
+                  </div>
                 </div>
               ))
             )}
           </div>
         )}
+      </div>
+
+      <div className="pagination">
+        <button
+          disabled={page <= 1 || loadingAssets}
+          onClick={() => setPage((p) => Math.max(1, p - 1))}
+        >
+          Prev
+        </button>
+        <span>
+          Page {page} of {Math.max(1, Math.ceil(total / limit))}
+        </span>
+        <button
+          disabled={page >= Math.ceil(total / limit) || loadingAssets}
+          onClick={() => setPage((p) => p + 1)}
+        >
+          Next
+        </button>
       </div>
     </div>
   );

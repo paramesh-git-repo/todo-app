@@ -51,6 +51,43 @@ const todoSchema = new mongoose.Schema({
 
 const Todo = mongoose.model('Todo', todoSchema);
 
+// Asset Schema
+const assetSchema = new mongoose.Schema({
+  name: {
+    type: String,
+    required: true,
+    trim: true
+  },
+  key: {
+    type: String,
+    required: true,
+    unique: true,
+    index: true
+  },
+  url: {
+    type: String,
+    required: true
+  },
+  size: {
+    type: Number,
+    default: 0
+  },
+  contentType: {
+    type: String,
+    default: ''
+  },
+  uploadedAt: {
+    type: Date,
+    default: Date.now
+  },
+  tags: {
+    type: [String],
+    default: []
+  }
+});
+
+const Asset = mongoose.model('Asset', assetSchema);
+
 // Routes
 app.get('/', (req, res) => {
   res.json({ 
@@ -60,8 +97,11 @@ app.get('/', (req, res) => {
       'POST /api/todos': 'Create a new todo',
       'PUT /api/todos/:id': 'Update a todo',
       'DELETE /api/todos/:id': 'Delete a todo',
-      'POST /api/upload': 'Upload a file to S3',
-      'GET /api/files': 'List all files in S3 bucket'
+      'POST /api/upload': 'Upload a file to S3 (also creates Asset)',
+      'GET /api/files': 'List all files in S3 bucket',
+      'GET /api/assets': 'List assets from DB',
+      'GET /api/assets/:id': 'Get a specific asset',
+      'DELETE /api/assets/:id': 'Delete an asset (and S3 object)'
     },
     status: 'active'
   });
@@ -143,11 +183,26 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
     };
 
     const result = await s3.upload(params).promise();
-    res.json({ 
-      message: "File uploaded successfully", 
-      url: result.Location,
+
+    // Create or upsert Asset record
+    const assetPayload = {
+      name: file.originalname,
       key: result.Key,
-      size: file.size
+      url: result.Location,
+      size: file.size,
+      contentType: file.mimetype,
+      uploadedAt: new Date()
+    };
+
+    const savedAsset = await Asset.findOneAndUpdate(
+      { key: result.Key },
+      assetPayload,
+      { new: true, upsert: true, setDefaultsOnInsert: true }
+    );
+
+    res.json({ 
+      message: "File uploaded successfully",
+      asset: savedAsset
     });
   } catch (err) {
     console.error("Upload error:", err);
@@ -172,6 +227,65 @@ app.get('/api/files', async (req, res) => {
   }
 });
 
+// Assets APIs
+app.get('/api/assets', async (req, res) => {
+  try {
+    const { q, page = 1, limit = 20 } = req.query;
+    const query = {};
+    if (q && String(q).trim() !== '') {
+      const like = new RegExp(String(q).trim(), 'i');
+      query.$or = [
+        { name: like },
+        { key: like },
+        { tags: like }
+      ];
+    }
+
+    const numericLimit = Math.max(1, Math.min(100, parseInt(limit)));
+    const numericPage = Math.max(1, parseInt(page));
+    const skip = (numericPage - 1) * numericLimit;
+
+    const [items, total] = await Promise.all([
+      Asset.find(query).sort({ uploadedAt: -1 }).skip(skip).limit(numericLimit),
+      Asset.countDocuments(query)
+    ]);
+
+    res.json({ items, total, page: numericPage, limit: numericLimit });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch assets', details: error.message });
+  }
+});
+
+app.get('/api/assets/:id', async (req, res) => {
+  try {
+    const asset = await Asset.findById(req.params.id);
+    if (!asset) return res.status(404).json({ error: 'Asset not found' });
+    res.json(asset);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch asset', details: error.message });
+  }
+});
+
+app.delete('/api/assets/:id', async (req, res) => {
+  try {
+    const asset = await Asset.findById(req.params.id);
+    if (!asset) return res.status(404).json({ error: 'Asset not found' });
+
+    // Attempt to delete from S3 first
+    try {
+      await s3.deleteObject({ Bucket: BUCKET_NAME, Key: asset.key }).promise();
+    } catch (s3err) {
+      // If S3 delete fails, still allow DB delete if requested explicitly
+      console.error('S3 delete failed:', s3err.message);
+    }
+
+    await Asset.deleteOne({ _id: asset._id });
+    res.json({ message: 'Asset deleted' });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to delete asset', details: error.message });
+  }
+});
+
 // Serve static files in production
 if (process.env.NODE_ENV === 'production') {
   app.use(express.static('../dist'));
@@ -183,4 +297,23 @@ if (process.env.NODE_ENV === 'production') {
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
+});
+
+// Generate presigned URL for download
+app.get('/api/assets/:id/download', async (req, res) => {
+  try {
+    const asset = await Asset.findById(req.params.id);
+    if (!asset) return res.status(404).json({ error: 'Asset not found' });
+
+    const params = {
+      Bucket: BUCKET_NAME,
+      Key: asset.key,
+      Expires: 60 // seconds
+    };
+
+    const url = s3.getSignedUrl('getObject', params);
+    res.json({ url });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to create download link', details: error.message });
+  }
 });
