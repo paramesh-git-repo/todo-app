@@ -1,0 +1,34 @@
+version: '3.8'
+
+services:
+  todo-backend:
+    build: .
+    ports:
+      - "5001:5001"
+    environment:
+      - NODE_ENV=production
+      - PORT=5001
+      - S3_BUCKET_NAME=todo-app-paramesh
+    volumes:
+      - ./logs:/app/logs
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:5001/', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Optional: MongoDB service (if you want to run MongoDB in Docker too)
+  mongodb:
+    image: mongo:6
+    ports:
+      - "27017:27017"
+    environment:
+      - MONGO_INITDB_DATABASE=todo-app-paramesh
+    volumes:
+      - mongodb_data:/data/db
+    restart: unless-stopped
+
+volumes:
+  mongodb_data:

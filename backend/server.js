@@ -2,6 +2,8 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const path = require('path');
+const multer = require('multer');
+const AWS = require('aws-sdk');
 require('dotenv').config();
 
 const app = express();
@@ -11,8 +13,15 @@ const PORT = process.env.PORT || 5001;
 app.use(cors());
 app.use(express.json());
 
+// Multer configuration for file uploads
+const upload = multer(); // memory storage
+
+// S3 instance (IAM Role handles auth automatically on EC2)
+const s3 = new AWS.S3();
+const BUCKET_NAME = process.env.S3_BUCKET_NAME || "todo-app-paramesh"; // your S3 bucket
+
 // MongoDB Connection
-mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/todo-app', {
+mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/todo-app-paramesh', {
   useNewUrlParser: true,
   useUnifiedTopology: true,
 });
@@ -50,7 +59,9 @@ app.get('/', (req, res) => {
       'GET /api/todos': 'Get all todos',
       'POST /api/todos': 'Create a new todo',
       'PUT /api/todos/:id': 'Update a todo',
-      'DELETE /api/todos/:id': 'Delete a todo'
+      'DELETE /api/todos/:id': 'Delete a todo',
+      'POST /api/upload': 'Upload a file to S3',
+      'GET /api/files': 'List all files in S3 bucket'
     },
     status: 'active'
   });
@@ -113,6 +124,51 @@ app.delete('/api/todos/:id', async (req, res) => {
     res.json({ message: 'Todo deleted successfully' });
   } catch (error) {
     res.status(500).json({ message: error.message });
+  }
+});
+
+// File Upload Routes
+app.post('/api/upload', upload.single('file'), async (req, res) => {
+  try {
+    const file = req.file;
+    if (!file) {
+      return res.status(400).json({ error: 'No file uploaded' });
+    }
+
+    const params = {
+      Bucket: BUCKET_NAME,
+      Key: file.originalname,
+      Body: file.buffer,
+      ContentType: file.mimetype
+    };
+
+    const result = await s3.upload(params).promise();
+    res.json({ 
+      message: "File uploaded successfully", 
+      url: result.Location,
+      key: result.Key,
+      size: file.size
+    });
+  } catch (err) {
+    console.error("Upload error:", err);
+    res.status(500).json({ error: "Upload failed", details: err.message });
+  }
+});
+
+// List files API
+app.get('/api/files', async (req, res) => {
+  try {
+    const params = { Bucket: BUCKET_NAME };
+    const result = await s3.listObjectsV2(params).promise();
+    const files = result.Contents.map(obj => ({
+      key: obj.Key,
+      lastModified: obj.LastModified,
+      size: obj.Size
+    }));
+    res.json(files);
+  } catch (err) {
+    console.error("List error:", err);
+    res.status(500).json({ error: "Cannot list files", details: err.message });
   }
 });
 

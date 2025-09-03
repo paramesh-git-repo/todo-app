@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import api from './api.js';
 import WebSocketTest from './WebSocketTest.jsx';
+import FileUpload from './FileUpload.jsx';
 import './App.css';
 
 function App() {
@@ -141,6 +142,8 @@ function App() {
       )}
       
       <WebSocketTest />
+      
+      <FileUpload />
     </div>
   );
 }
