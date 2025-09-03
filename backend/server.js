@@ -51,6 +51,33 @@ const todoSchema = new mongoose.Schema({
 
 const Todo = mongoose.model('Todo', todoSchema);
 
+// Asset Schema
+const assetSchema = new mongoose.Schema({
+  key: {
+    type: String,
+    required: true,
+    index: true,
+    trim: true
+  },
+  url: {
+    type: String,
+    required: true
+  },
+  size: {
+    type: Number,
+    required: true
+  },
+  contentType: {
+    type: String
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now
+  }
+});
+
+const Asset = mongoose.model('Asset', assetSchema);
+
 // Routes
 app.get('/', (req, res) => {
   res.json({ 
@@ -122,6 +149,43 @@ app.delete('/api/todos/:id', async (req, res) => {
     }
     
     res.json({ message: 'Todo deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Asset Routes
+app.get('/api/assets', async (req, res) => {
+  try {
+    const assets = await Asset.find().sort({ createdAt: -1 });
+    res.json(assets);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+app.post('/api/assets', async (req, res) => {
+  try {
+    const { key, url, size, contentType } = req.body;
+    if (!key || !url || typeof size !== 'number') {
+      return res.status(400).json({ message: 'key, url, and size are required' });
+    }
+    const asset = new Asset({ key, url, size, contentType });
+    const saved = await asset.save();
+    res.status(201).json(saved);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+app.delete('/api/assets/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const deleted = await Asset.findByIdAndDelete(id);
+    if (!deleted) {
+      return res.status(404).json({ message: 'Asset not found' });
+    }
+    res.json({ message: 'Asset deleted successfully' });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
